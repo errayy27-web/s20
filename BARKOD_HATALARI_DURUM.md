@@ -1,0 +1,1 @@
+Barkod Hataları ana sayfa Hızlı İşlemler bölümüne görünür buton olarak eklendi. Mevcut Barkod Hataları sayfasında kayıt, durum düzenleme, tekli silme, toplu temizleme ve Excel dışa aktarma kodu bulunuyor. PC/Supabase senkronizasyonu henüz doğrulanmadı. Kasa ve PC sunucu dosyaları değiştirilmedi. Flutter APK derlemesi yapılmadı.

@@ -1,0 +1,61 @@
+workflows:
+  android-debug:
+    name: SS OIL Android test APK
+    max_build_duration: 60
+    environment:
+      flutter: stable
+    scripts:
+      - name: Create complete Flutter Android scaffold
+        script: |
+          set -eu
+          mkdir -p /tmp/ssoil_generated
+          cd /tmp/ssoil_generated
+          flutter create --platforms=android --org com.ssoil --project-name ss_oil_stok_kontrol .
+          cd "$CM_BUILD_DIR"
+          cp -R /tmp/ssoil_generated/android ./android_scaffold
+          cp -R android_scaffold/. ./android/
+          rm -rf android_scaffold
+          python3 - <<'PYCODE'
+          from pathlib import Path
+          import shutil
+          manifest=Path('android/app/src/main/AndroidManifest.xml')
+          s=manifest.read_text()
+          s=s.replace('<application','<uses-permission android:name="android.permission.INTERNET"/><uses-permission android:name="android.permission.CAMERA"/><application',1)
+          s=s.replace('<application','<application android:usesCleartextTraffic="true"',1)
+          manifest.write_text(s)
+          for icon in Path('android_icons').glob('mipmap-*/ic_launcher.png'):
+              dst=Path('android/app/src/main/res')/icon.parent.name/'ic_launcher.png'
+              dst.parent.mkdir(parents=True,exist_ok=True)
+              shutil.copy2(icon,dst)
+          PYCODE
+          flutter pub get
+          python3 - <<'ANDROID_FIX'
+          from pathlib import Path
+          import re
+          app = Path('android/app/build.gradle.kts')
+          if not app.exists():
+              app = Path('android/app/build.gradle')
+          if not app.exists():
+              raise SystemExit('Android app Gradle dosyası bulunamadı')
+          data = app.read_text()
+          data, count = re.subn(r'compileSdk\s*(?:=\s*)?(?:flutter\.compileSdkVersion|\d+)', 'compileSdk = 36' if app.suffix == '.kts' else 'compileSdkVersion 36', data, count=1)
+          if count != 1:
+              raise SystemExit('App compileSdk güncellenemedi')
+          app.write_text(data)
+          cache = Path.home()/'.pub-cache'/'hosted'/'pub.dev'
+          plugins = list(cache.glob('file_picker-*/android/build.gradle')) + list(cache.glob('file_picker-*/android/build.gradle.kts'))
+          if not plugins:
+              raise SystemExit('file_picker Gradle dosyası bulunamadı')
+          for gradle in plugins:
+              data = gradle.read_text()
+              data, count = re.subn(r'compileSdk(?:Version)?\s*(?:=\s*)?\d+', 'compileSdk = 36' if gradle.suffix == '.kts' else 'compileSdkVersion 36', data, count=1)
+              if count != 1:
+                  raise SystemExit(f'file_picker compileSdk güncellenemedi: {gradle}')
+              gradle.write_text(data)
+              print('API 36:', gradle)
+          print('API 36:', app)
+          ANDROID_FIX
+      - name: Build Android debug APK
+        script: flutter build apk --debug
+    artifacts:
+      - build/app/outputs/flutter-apk/*.apk

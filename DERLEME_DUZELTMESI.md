@@ -1,0 +1,1 @@
+S16.1: lib/main.dart icinde settingsPage tarafindan cagrilan field(String, String, ValueChanged<String>) widget metodu eklendi. Kasa ve PC sunucu dosyalari degistirilmedi. Flutter SDK bu ortamda olmadigindan APK derlemesi dogrulanamadi.
